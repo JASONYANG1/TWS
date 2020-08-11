@@ -19,7 +19,7 @@ class DeviceListAdapter : BaseAdapter() {
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
         var view = convertView
-        var viewHolder : ViewHolder? = null
+        val viewHolder: ViewHolder?
         if (view == null) {
             viewHolder = ViewHolder()
             val inflater = LayoutInflater.from(parent!!.context)
