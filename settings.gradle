@@ -1,0 +1,5 @@
+include ':tws_transmitter'
+include ':tws_player'
+include ':tws_receiver'
+include ':app'
+rootProject.name = "TWS"

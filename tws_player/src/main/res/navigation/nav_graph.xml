@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/nav_graph"
+    app:startDestination="@id/BluetoothFragment">
+
+    <fragment
+        android:id="@+id/BluetoothFragment"
+        android:name="com.wxson.tws_player.BluetoothFragment"
+        android:label="@string/first_fragment_label"
+        tools:layout="@layout/fragment_bluetooth">
+
+        <action
+            android:id="@+id/action_BluetoothFragment_to_FileSelectorFragment"
+            app:destination="@id/FileSelectorFragment" />
+    </fragment>
+    <fragment
+        android:id="@+id/FileSelectorFragment"
+        android:name="com.wxson.tws_player.FileSelectorFragment"
+        android:label="@string/second_fragment_label"
+        tools:layout="@layout/fragment_file_selector">
+
+        <action
+            android:id="@+id/action_FileSelectorFragment_to_BluetoothFragment"
+            app:destination="@id/BluetoothFragment" />
+    </fragment>
+</navigation>
