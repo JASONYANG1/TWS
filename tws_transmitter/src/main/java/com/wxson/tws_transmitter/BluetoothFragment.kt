@@ -3,18 +3,20 @@ package com.wxson.tws_transmitter
 import android.Manifest
 import android.app.Activity
 import android.bluetooth.BluetoothDevice
-import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.AdapterView.OnItemClickListener
 import android.widget.Button
 import android.widget.ListView
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.observe
 import pub.devrel.easypermissions.EasyPermissions
 
 
@@ -25,7 +27,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     private var btnClose : Button? = null
     private var btnSearch : Button? = null
     private var listView : ListView? = null
-//    private val deviceListAdapter = DeviceListAdapter<BluetoothDevice>()
+    private val deviceListAdapter = DeviceListAdapter()
 
     companion object {
         fun newInstance() = BluetoothFragment()
@@ -51,18 +53,24 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         btnSearch = activity?.findViewById(R.id.btn_search)
         btnSearch?.setOnClickListener(this)
         listView = activity?.findViewById(R.id.list_view)
-//        listView?.adapter = deviceListAdapter
+        listView?.adapter = deviceListAdapter
 
         viewModel = ViewModelProvider(this).get(BluetoothViewModel::class.java)
         if (!viewModel.hasBluetoothAdapter()) {
             showMsg("不支持蓝牙 系统退出")
             activity?.finish()
         }
-        requestLocationPermission()
-        val currentContext : Context? = context
-        var deviceDeviceListAdapter : DeviceListAdapter<BluetoothDevice> =  DeviceListAdapter<BluetoothDevice>(currentContext!!, listViewProperty,
-            R.layout.device_item, BR.itemThree)
 
+        listView?.onItemClickListener =
+            OnItemClickListener { _, _, position, _ ->
+                viewModel.createBond(position)
+            }
+        //定义ViewModel bluetoothDeviceList数据变化观察者
+        val bluetoothDeviceListObserver: Observer<MutableList<BluetoothDevice>> =
+            Observer { deviceList -> deviceListAdapter.refresh(deviceList) }
+        viewModel.getDeviceList().observe(viewLifecycleOwner, bluetoothDeviceListObserver)
+
+        requestLocationPermission()
     }
 
     override fun onClick(v: View?) {
@@ -71,7 +79,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
                 activity?.let {viewModel.openBluetooth(it)}
             }
             R.id.btn_close -> {
-                viewModel.closeBluetooth(deviceListAdapter)
+                viewModel.closeBluetooth()
             }
             R.id.btn_search -> {
                 viewModel.searchBluetooth()
