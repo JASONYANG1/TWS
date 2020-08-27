@@ -1,6 +1,5 @@
 package com.wxson.tws_transmitter
 
-import android.bluetooth.BluetoothDevice
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -9,12 +8,12 @@ import android.widget.TextView
 
 
 class DeviceListAdapter : BaseAdapter() {
-    private val listInAdapter: MutableList<BluetoothDevice> = ArrayList()
+    private val listInAdapter: MutableList<BluetoothDeviceWithStatus> = ArrayList()
 
-    fun refresh(list: List<BluetoothDevice>) {
+    fun refresh(list: List<BluetoothDeviceWithStatus>) {
         listInAdapter.clear()
         listInAdapter.addAll(list)
-        notifyDataSetChanged()
+//        notifyDataSetChanged()
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
@@ -25,17 +24,17 @@ class DeviceListAdapter : BaseAdapter() {
             val inflater = LayoutInflater.from(parent!!.context)
             view = inflater.inflate(R.layout.device_item, parent, false)
             viewHolder.nameTextView = view!!.findViewById(R.id.nameTextView)
-            viewHolder.addressTextView = view.findViewById(R.id.addressTextView)
+            viewHolder.statusTextView = view.findViewById(R.id.statusTextView)
             view.tag = viewHolder
         } else {
             viewHolder = view.tag as ViewHolder
         }
-        viewHolder.nameTextView?.text = listInAdapter[position].name
-        viewHolder.addressTextView?.text = listInAdapter[position].address
+        viewHolder.nameTextView?.text = listInAdapter[position].bluetoothDevice.name
+        viewHolder.statusTextView?.text = if (listInAdapter[position].isPaired) "已配对" else "未配对"
         return view
     }
 
-    override fun getItem(position: Int): BluetoothDevice {
+    override fun getItem(position: Int): BluetoothDeviceWithStatus {
         return listInAdapter[position]
     }
 
@@ -49,6 +48,6 @@ class DeviceListAdapter : BaseAdapter() {
 
     internal class ViewHolder {
         internal var nameTextView: TextView? = null
-        internal var addressTextView: TextView? = null
+        internal var statusTextView: TextView? = null
     }
 }

@@ -14,7 +14,7 @@
         tools:layout_editor_absoluteX="19dp" />
 
     <TextView
-        android:id="@+id/addressTextView"
+        android:id="@+id/statusTextView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text=""

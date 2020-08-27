@@ -21,7 +21,7 @@ class ConnectionManager(private var device: BluetoothDevice) {
             try {
                 socket = device.createInsecureRfcommSocketToServiceRecord(UUID.fromString(uuid))
                 socket.connect()
-                Log.e("###connect", "连接成功")
+                Log.i("###connect", "连接成功")
                 val os: OutputStream = socket.outputStream
                 os.write("蓝牙已连接".toByteArray())
                 os.close()
