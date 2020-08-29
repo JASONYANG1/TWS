@@ -30,7 +30,7 @@ class DeviceListAdapter : BaseAdapter() {
             viewHolder = view.tag as ViewHolder
         }
         viewHolder.nameTextView?.text = listInAdapter[position].bluetoothDevice.name
-        viewHolder.statusTextView?.text = if (listInAdapter[position].isPaired) "已配对" else "未配对"
+        viewHolder.statusTextView?.text = if (listInAdapter[position].isPaired) "已配对" else "-"
         return view
     }
 

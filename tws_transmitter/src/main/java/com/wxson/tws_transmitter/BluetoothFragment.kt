@@ -158,6 +158,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
                 if (resultCode == Activity.RESULT_OK) {
                     Log.i(runningTag, "开启蓝牙成功")
                     showMsg("开启蓝牙成功")
+                    viewModel.getBondedDevicesFromBluetoothAdapter()
                 }
                 else {
                     Log.i(runningTag, "开启蓝牙失败")

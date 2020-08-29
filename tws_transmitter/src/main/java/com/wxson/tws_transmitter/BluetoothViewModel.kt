@@ -58,6 +58,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                             .getMethod("connect", BluetoothDevice::class.java)
                             .invoke(bluetoothA2dp, currentBluetoothDevice)
                         msgLiveData.postValue("请播放音乐")
+                        getBondedDevicesFromBluetoothAdapter()
                     }
                 }
             } catch (e: Exception) {
@@ -78,7 +79,6 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         bluetoothReceiver = BluetoothReceiver()
         app.registerReceiver(bluetoothReceiver, filter)
         getBondedDevicesFromBluetoothAdapter()
-        deviceListLiveData.postValue(deviceWithStatusList)
     }
 
     override fun onCleared() {
@@ -102,7 +102,6 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             } else {
                 msgLiveData.postValue("蓝牙已开启")
                 getBondedDevicesFromBluetoothAdapter()
-                deviceListLiveData.postValue(deviceWithStatusList)
             }
         }
     }
@@ -179,7 +178,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     //获取所有已经绑定的蓝牙设备
-    private fun getBondedDevicesFromBluetoothAdapter() {
+    fun getBondedDevicesFromBluetoothAdapter() {
         if (deviceWithStatusList.isNotEmpty()) deviceWithStatusList.clear()
         val deviceSet = bluetoothAdapter?.bondedDevices
         if (deviceSet != null) {
@@ -188,6 +187,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 bluetoothDevice.isPaired = true
                 deviceWithStatusList.add(bluetoothDevice)
             }
+            deviceListLiveData.postValue(deviceWithStatusList)
         }
     }
 
@@ -238,7 +238,6 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         BluetoothDevice.BOND_NONE -> {
                             Log.i(tag, "没有设备")
                             getBondedDevicesFromBluetoothAdapter()
-                            deviceListLiveData.postValue(deviceWithStatusList)
                         }
                         BluetoothDevice.BOND_BONDING -> {
                             Log.i(tag, "正在匹配中")
