@@ -19,6 +19,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.snackbar.Snackbar
 import pub.devrel.easypermissions.EasyPermissions
 
+
 class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.OnClickListener {
 
     private val runningTag = this.javaClass.simpleName
@@ -31,6 +32,10 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     private var listView : ListView? = null
     private val deviceListAdapter = DeviceListAdapter()
     private lateinit var snackbar : Snackbar
+
+//    companion object {
+//        fun newInstance() = BluetoothFragment()
+//    }
 
     private lateinit var viewModel: BluetoothViewModel
 

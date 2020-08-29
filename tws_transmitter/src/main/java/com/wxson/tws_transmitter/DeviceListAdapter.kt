@@ -13,7 +13,7 @@ class DeviceListAdapter : BaseAdapter() {
     fun refresh(list: List<BluetoothDeviceWithStatus>) {
         listInAdapter.clear()
         listInAdapter.addAll(list)
-//        notifyDataSetChanged()
+        notifyDataSetChanged()
     }
 
     override fun getView(position: Int, convertView: View?, parent: ViewGroup?): View {
