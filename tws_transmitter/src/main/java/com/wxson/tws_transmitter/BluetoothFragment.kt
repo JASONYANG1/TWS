@@ -2,8 +2,6 @@ package com.wxson.tws_transmitter
 
 import android.Manifest
 import android.app.Activity
-import android.bluetooth.BluetoothDevice
-import android.content.DialogInterface
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
@@ -18,12 +16,12 @@ import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.google.android.material.snackbar.Snackbar
 import pub.devrel.easypermissions.EasyPermissions
-
 
 class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.OnClickListener {
 
-    private val TAG = this.javaClass.simpleName
+    private val runningTag = this.javaClass.simpleName
     private var btnOpen : Button? = null
     private var btnClose : Button? = null
     private var btnSearch : Button? = null
@@ -32,10 +30,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     private var btnStop : Button? = null
     private var listView : ListView? = null
     private val deviceListAdapter = DeviceListAdapter()
-
-    companion object {
-        fun newInstance() = BluetoothFragment()
-    }
+    private lateinit var snackbar : Snackbar
 
     private lateinit var viewModel: BluetoothViewModel
 
@@ -48,7 +43,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        Log.i(TAG, "onActivityCreated")
+        Log.i(runningTag, "onActivityCreated")
         //获取控件
         btnOpen = activity?.findViewById(R.id.btn_open)
         btnOpen?.setOnClickListener(this)
@@ -85,6 +80,9 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         viewModel.getDeviceList().observe(viewLifecycleOwner, bluetoothDeviceListObserver)
         val msgObserver: Observer<String> = Observer { localMsg -> showMsg(localMsg.toString()) }
         viewModel.getMsg().observe(viewLifecycleOwner, msgObserver)
+        val showProgressObserver : Observer<Boolean> = Observer { isShowProgress -> showProgress(isShowProgress) }
+        viewModel.getShowProgress().observe(viewLifecycleOwner, showProgressObserver)
+
         //申请权限
         requestLocationPermission()
     }
@@ -114,13 +112,13 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
 
     //申请蓝牙所需位置权限
     private fun requestLocationPermission() {
-        Log.i(TAG, "requestLocationPermission")
+        Log.i(runningTag, "requestLocationPermission")
         val perms = Manifest.permission.ACCESS_COARSE_LOCATION
         if (EasyPermissions.hasPermissions(requireContext(), perms)) {
-            Log.i(TAG, "已获取ACCESS_COARSE_LOCATION权限")
+            Log.i(runningTag, "已获取ACCESS_COARSE_LOCATION权限")
             // Already have permission, do the thing
         } else {
-            Log.i(TAG, "申请ACCESS_COARSE_LOCATION权限")
+            Log.i(runningTag, "申请ACCESS_COARSE_LOCATION权限")
             // Do not have permissions, request them now
             EasyPermissions.requestPermissions(
                 this, getString(R.string.position_rationale), 1, perms
@@ -129,22 +127,22 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-        Log.i(TAG, "onRequestPermissionsResult")
+        Log.i(runningTag, "onRequestPermissionsResult")
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         // Forward results to EasyPermissions
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this)
     }
 
     override fun onPermissionsDenied(requestCode: Int, perms: MutableList<String>) {
-        Log.i(TAG, "onPermissionsDenied")
-        Log.i(TAG, "获取权限失败，退出当前页面$perms")
+        Log.i(runningTag, "onPermissionsDenied")
+        Log.i(runningTag, "获取权限失败，退出当前页面$perms")
         showMsg("获取权限失败")
         activity?.finish()  //退出当前页面
     }
 
     override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
-        Log.i(TAG, "onPermissionsGranted")
-        Log.i(TAG, "获取权限成功$perms")
+        Log.i(runningTag, "onPermissionsGranted")
+        Log.i(runningTag, "获取权限成功$perms")
         showMsg("获取权限成功")
     }
 
@@ -153,11 +151,11 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         when (requestCode){
             Constants.BluetoothRequestCode -> {
                 if (resultCode == Activity.RESULT_OK) {
-                    Log.i(TAG, "开启蓝牙成功")
+                    Log.i(runningTag, "开启蓝牙成功")
                     showMsg("开启蓝牙成功")
                 }
                 else {
-                    Log.i(TAG, "开启蓝牙失败")
+                    Log.i(runningTag, "开启蓝牙失败")
                     showMsg("开启蓝牙失败")
                 }
             }
@@ -166,5 +164,14 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
 
     private fun showMsg(msg: String){
         Toast.makeText(this.context, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showProgress(isShow : Boolean) {
+        if (isShow) {
+            snackbar = Snackbar.make(this.requireView(), "正在搜索...", Snackbar.LENGTH_INDEFINITE)
+            snackbar.show()
+        } else {
+            snackbar.dismiss()
+        }
     }
 }

@@ -15,11 +15,13 @@ import androidx.lifecycle.MutableLiveData
 
 
 class BluetoothViewModel(application: Application) : AndroidViewModel(application) {
-    private val TAG = this.javaClass.simpleName
+    private val tag = this.javaClass.simpleName
     private val app : Application
     private val bluetoothAdapter : BluetoothAdapter?
     private val deviceWithStatusList: MutableList<BluetoothDeviceWithStatus> = ArrayList()
     private lateinit var currentBluetoothDevice : BluetoothDevice
+    private lateinit var bluetoothA2dp : BluetoothA2dp
+    private val bluetoothReceiver : BroadcastReceiver
 
     //region for LiveData
     private var deviceListLiveData = MutableLiveData<MutableList<BluetoothDeviceWithStatus>>()
@@ -31,10 +33,41 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     fun getMsg(): LiveData<String> {
         return msgLiveData
     }
+
+    private var showProgressLiveData = MutableLiveData<Boolean>()
+    fun getShowProgress() : LiveData<Boolean> {
+        return showProgressLiveData
+    }
     //endregion
 
+    //连接蓝牙设备（通过监听蓝牙协议的服务，在连接服务的时候使用BluetoothA2dp协议）
+    private val profileServiceListener = object : BluetoothProfile.ServiceListener {
+        override fun onServiceDisconnected(profile: Int) {
+            // nothing to do
+        }
+
+        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
+            try {
+                if (profile == BluetoothProfile.HEADSET) {
+                    // nothing to do
+                } else if (profile == BluetoothProfile.A2DP) {
+                    //使用A2DP的协议连接蓝牙设备
+                    bluetoothA2dp = proxy as BluetoothA2dp
+                    if (bluetoothA2dp.getConnectionState(currentBluetoothDevice) != BluetoothProfile.STATE_CONNECTED) {
+                        bluetoothA2dp.javaClass
+                            .getMethod("connect", BluetoothDevice::class.java)
+                            .invoke(bluetoothA2dp, currentBluetoothDevice)
+                        msgLiveData.postValue("请播放音乐")
+                    }
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
     init {
-        Log.i(TAG, "init")
+        Log.i(tag, "init")
         app = application
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
 
@@ -42,12 +75,15 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         filter.addAction(BluetoothDevice.ACTION_FOUND)
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
-        val bluetoothReceiver = BluetoothReceiver()
-        application.registerReceiver(bluetoothReceiver, filter)
+        bluetoothReceiver = BluetoothReceiver()
+        app.registerReceiver(bluetoothReceiver, filter)
+        getBondedDevicesFromBluetoothAdapter()
+        deviceListLiveData.postValue(deviceWithStatusList)
     }
 
     override fun onCleared() {
-        Log.i(TAG, "onCleared")
+        Log.i(tag, "onCleared")
+        app.unregisterReceiver(bluetoothReceiver)
         super.onCleared()
     }
 
@@ -65,6 +101,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 currActivity.startActivityForResult(intent, Constants.BluetoothRequestCode)
             } else {
                 msgLiveData.postValue("蓝牙已开启")
+                getBondedDevicesFromBluetoothAdapter()
                 deviceListLiveData.postValue(deviceWithStatusList)
             }
         }
@@ -93,6 +130,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             bluetoothAdapter.cancelDiscovery()
         }
         bluetoothAdapter?.startDiscovery()
+        showProgressLiveData.postValue(true)
+
     }
 
     //执行蓝牙设备绑定
@@ -102,26 +141,27 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         try {
             when (currentBluetoothDevice.bondState) {
                 BluetoothDevice.BOND_BONDED -> {
-                    //使用A2DP协议连接设备
-                    bluetoothAdapter?.getProfileProxy(
-                        app.baseContext,
-                        profileServiceListener,
-                        BluetoothProfile.A2DP
-                    )
+                    msg= "是否与设备" + currentBluetoothDevice.name + "连接？"
+                    showDialog(msg, DialogInterface.OnClickListener{ _, _ ->
+                        //使用A2DP协议连接设备
+                        connectA2dpDevice()
+                    })
                 }
-                BluetoothDevice.BOND_BONDING -> {
-                }
+//                BluetoothDevice.BOND_BONDING -> {
+//                    msgLiveData.postValue("设备正在绑定中")
+//                }
                 BluetoothDevice.BOND_NONE -> {
-                    // 如果未配对，实施配对绑定
-//                    val createBond = BluetoothDevice::class.java.getMethod("createBond")
-//                    createBond.invoke(currentBluetoothDevice)
-                    BluetoothUtils.makePair(currentBluetoothDevice)
+                    msg="是否与设备" + currentBluetoothDevice.name + "配对并连接？"
+                    showDialog(msg, DialogInterface.OnClickListener{ _, _ ->
+                        // 如果未配对，实施配对绑定
+                        BluetoothUtils.makePair(currentBluetoothDevice)
+                    })
                 }
             }
+            showProgressLiveData.postValue(true)
         } catch (e: Exception) {
             e.printStackTrace()
         }
-        TODO("Not yet implemented")
     }
 
     //解除蓝牙设备绑定
@@ -139,7 +179,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     //获取所有已经绑定的蓝牙设备
-    private fun getBondedDevices() {
+    private fun getBondedDevicesFromBluetoothAdapter() {
         if (deviceWithStatusList.isNotEmpty()) deviceWithStatusList.clear()
         val deviceSet = bluetoothAdapter?.bondedDevices
         if (deviceSet != null) {
@@ -149,50 +189,28 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 deviceWithStatusList.add(bluetoothDevice)
             }
         }
-        deviceListLiveData.postValue(deviceWithStatusList)
     }
 
-    //连接蓝牙设备（通过监听蓝牙协议的服务，在连接服务的时候使用BluetoothA2dp协议）
-    private val profileServiceListener = object : BluetoothProfile.ServiceListener {
-        override fun onServiceDisconnected(profile: Int) {
-            // nothing to do
-        }
-
-        override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
-            try {
-                if (profile == BluetoothProfile.HEADSET) {
-                    // nothing to do
-                } else if(profile == BluetoothProfile.A2DP) {
-                    //使用A2DP的协议连接蓝牙设备
-                    val a2dp = proxy as BluetoothA2dp
-                    if (a2dp.getConnectionState(currentBluetoothDevice) != BluetoothProfile.STATE_CONNECTED) {
-                        a2dp.javaClass
-                            .getMethod("connect", BluetoothDevice::class.java)
-                            .invoke(a2dp, currentBluetoothDevice)
-                        msgLiveData.postValue("请播放音乐")
-//                        getBondedDevices()
-                    }
-                    TODO("Not yet implemented")
-                }
-            }
-            catch (e: Exception){
-                e.printStackTrace()
-            }
-        }
+    //连接A2DP蓝牙设备
+    private fun connectA2dpDevice() {
+        bluetoothAdapter?.getProfileProxy(
+            app.baseContext,
+            profileServiceListener,
+            BluetoothProfile.A2DP
+        )
     }
 
     private fun showDialog(msg: String?, listener: DialogInterface.OnClickListener?) {
         val alertDialog : AlertDialog = AlertDialog.Builder(app).create()
         alertDialog.setMessage(msg)
-        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "取消",
-            DialogInterface.OnClickListener { _, _ -> alertDialog.dismiss() })
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "取消"
+        ) { _, _ -> alertDialog.dismiss() }
         alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, "确认", listener)
         alertDialog.show()
     }
 
-
     private inner class BluetoothReceiver  : BroadcastReceiver(){
-        private val TAG = this.javaClass.simpleName
+        private val tag = this.javaClass.simpleName
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
                 BluetoothDevice.ACTION_FOUND -> {
@@ -200,6 +218,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
+                        //搜索到的不是已经配对的蓝牙设备
                         val bluetoothDevice = BluetoothDeviceWithStatus(device)
                         bluetoothDevice.isPaired = false
                         deviceWithStatusList.add(bluetoothDevice)
@@ -208,7 +227,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     //扫描结束
-                    deviceListLiveData.postValue(deviceWithStatusList)
+                    showProgressLiveData.postValue(false)
+                    Log.i(tag, "搜索完成")
                 }
                 BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
                     //状态发生改变（监听设备连接状态）
@@ -216,14 +236,17 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     when (device?.bondState) {
                         BluetoothDevice.BOND_NONE -> {
-                            Log.i(TAG, "没有设备")
+                            Log.i(tag, "没有设备")
+                            getBondedDevicesFromBluetoothAdapter()
+                            deviceListLiveData.postValue(deviceWithStatusList)
                         }
                         BluetoothDevice.BOND_BONDING -> {
-                            Log.i(TAG, "正在匹配中")
+                            Log.i(tag, "正在匹配中")
                         }
                         BluetoothDevice.BOND_BONDED -> {
-                            Log.i(TAG, "匹配成功")
-                            ConnectionManager(device)
+                            Log.i(tag, "匹配成功")
+                            showProgressLiveData.postValue(false)
+                            connectA2dpDevice()
                         }
                     }
                 }

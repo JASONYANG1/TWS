@@ -12,11 +12,11 @@ import java.util.*
 /**
  * 配对指定的蓝牙设备
  */
- object BluetoothUtils {
+object BluetoothUtils {
 
-    private val uuid = "00001101-0000-1000-8000-00805F9B34FB"
+    private const val uuid = "00001101-0000-1000-8000-00805F9B34FB"
     private var pairingHandler: Handler? = null
-    private lateinit var socket : BluetoothSocket
+    private lateinit var socket: BluetoothSocket
 
     fun makePair(bluetoothDevice: BluetoothDevice) {
         if (null == pairingHandler) {
@@ -24,14 +24,14 @@ import java.util.*
             handlerThread.start()
             pairingHandler = Handler(handlerThread.looper)
         }
-        pairingHandler?.post(Runnable {
+        pairingHandler?.post {
             getSocket(bluetoothDevice) //取得socket
             try {
                 socket.connect() //请求配对
             } catch (e: IOException) {
                 e.printStackTrace()
             }
-        })
+        }
     }
 
     fun breakPair(bluetoothDevice: BluetoothDevice) {
@@ -44,7 +44,7 @@ import java.util.*
     }
 
     private fun getSocket(bluetoothDevice: BluetoothDevice) {
-        var temp : BluetoothSocket? = null
+        var temp: BluetoothSocket? = null
         try {
             temp = bluetoothDevice.createInsecureRfcommSocketToServiceRecord(UUID.fromString(uuid))
             //怪异错误： 直接赋值给socket,对socket操作可能出现异常，  要通过中间变量temp赋值给socket
