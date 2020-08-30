@@ -1,6 +1,5 @@
 package com.wxson.tws_transmitter
 
-import android.app.Activity
 import android.app.AlertDialog
 import android.app.Application
 import android.bluetooth.BluetoothA2dp
@@ -9,6 +8,7 @@ import android.bluetooth.BluetoothDevice
 import android.bluetooth.BluetoothProfile
 import android.content.*
 import android.util.Log
+import androidx.fragment.app.Fragment
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -92,13 +92,13 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         return (bluetoothAdapter != null)
     }
 
-    fun openBluetooth(currActivity: Activity) {
+    fun openBluetooth(fragment: Fragment) {
         if (bluetoothAdapter != null) {
             if (!bluetoothAdapter.isEnabled) {
                 //请求用户开启蓝牙
                 val intent = Intent()
                 intent.action = BluetoothAdapter.ACTION_REQUEST_ENABLE
-                currActivity.startActivityForResult(intent, Constants.BluetoothRequestCode)
+                fragment.startActivityForResult(intent, Constants.BluetoothRequestCode)
             } else {
                 msgLiveData.postValue("蓝牙已开启")
                 getBondedDevicesFromBluetoothAdapter()
@@ -106,13 +106,13 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun makeDiscoverable(currActivity: Activity) {
+    fun makeDiscoverable(fragment: Fragment) {
         if (bluetoothAdapter != null) {
             //请求用户设置蓝牙可被发现
             val intent = Intent()
             intent.action = BluetoothAdapter.ACTION_REQUEST_DISCOVERABLE
             intent.putExtra(BluetoothAdapter.EXTRA_DISCOVERABLE_DURATION, 200)
-            currActivity.startActivity(intent)
+            fragment.startActivity(intent)
         }
     }
 

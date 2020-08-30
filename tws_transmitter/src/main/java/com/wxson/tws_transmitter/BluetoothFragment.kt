@@ -95,7 +95,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     override fun onClick(v: View?) {
         when (v?.id) {
             R.id.btn_open -> {
-                activity?.let {viewModel.openBluetooth(it)}
+                this.let {viewModel.openBluetooth(it)}
             }
             R.id.btn_close -> {
                 viewModel.closeBluetooth()
@@ -104,7 +104,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
                 viewModel.searchBluetooth()
             }
             R.id.btn_discoverable -> {
-                activity?.let {viewModel.makeDiscoverable(it)}
+                this.let {viewModel.makeDiscoverable(it)}
             }
             R.id.btn_play -> {
                 AudioUtils.INSTANCE.playMedia(activity)
