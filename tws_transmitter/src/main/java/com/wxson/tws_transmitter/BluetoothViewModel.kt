@@ -209,7 +209,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         alertDialog.show()
     }
 
-    private inner class BluetoothReceiver  : BroadcastReceiver(){
+    private inner class BluetoothReceiver : BroadcastReceiver() {
         private val tag = this.javaClass.simpleName
         override fun onReceive(context: Context?, intent: Intent?) {
             when (intent?.action) {
@@ -217,12 +217,17 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                     //发现设备
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    //搜索到的不是已经配对的蓝牙设备
                     if (device != null && device.bondState != BluetoothDevice.BOND_BONDED) {
-                        //搜索到的不是已经配对的蓝牙设备
-                        val bluetoothDevice = BluetoothDeviceWithStatus(device)
-                        bluetoothDevice.isPaired = false
-                        deviceWithStatusList.add(bluetoothDevice)
-                        deviceListLiveData.postValue(deviceWithStatusList)
+                        val bluetoothDeviceWithStatus = BluetoothDeviceWithStatus(device)
+                        //如果设备表中不存在，则添加其中
+                        if (deviceWithStatusList.find { deviceInList: BluetoothDeviceWithStatus ->
+                                deviceInList.bluetoothDevice.address == device.address
+                            } == null) {
+                            bluetoothDeviceWithStatus.isPaired = false
+                            deviceWithStatusList.add(bluetoothDeviceWithStatus)
+                            deviceListLiveData.postValue(deviceWithStatusList)
+                        }
                     }
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {

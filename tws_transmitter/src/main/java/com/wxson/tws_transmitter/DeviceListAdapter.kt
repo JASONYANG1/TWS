@@ -24,12 +24,14 @@ class DeviceListAdapter : BaseAdapter() {
             val inflater = LayoutInflater.from(parent!!.context)
             view = inflater.inflate(R.layout.device_item, parent, false)
             viewHolder.nameTextView = view!!.findViewById(R.id.nameTextView)
+            viewHolder.addressTextView = view.findViewById(R.id.addressTextView)
             viewHolder.statusTextView = view.findViewById(R.id.statusTextView)
             view.tag = viewHolder
         } else {
             viewHolder = view.tag as ViewHolder
         }
         viewHolder.nameTextView?.text = listInAdapter[position].bluetoothDevice.name
+        viewHolder.addressTextView?.text = listInAdapter[position].bluetoothDevice.address
         viewHolder.statusTextView?.text = if (listInAdapter[position].isPaired) "已配对" else "-"
         return view
     }
@@ -48,6 +50,7 @@ class DeviceListAdapter : BaseAdapter() {
 
     internal class ViewHolder {
         internal var nameTextView: TextView? = null
+        internal var addressTextView: TextView? = null
         internal var statusTextView: TextView? = null
     }
 }
