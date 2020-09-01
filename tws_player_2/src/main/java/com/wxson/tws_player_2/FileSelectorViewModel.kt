@@ -1,4 +1,4 @@
-package com.wxson.tws_player
+package com.wxson.tws_player_2
 
 import android.app.Activity
 import android.app.Application
@@ -7,7 +7,6 @@ import android.net.Uri
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import java.io.FileInputStream
-import java.io.InputStream
 
 class FileSelectorViewModel(application: Application)  : AndroidViewModel(application) {
     private val TAG = this.javaClass.simpleName

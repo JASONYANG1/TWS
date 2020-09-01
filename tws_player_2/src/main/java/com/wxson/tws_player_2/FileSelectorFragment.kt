@@ -1,6 +1,5 @@
-package com.wxson.tws_player
+package com.wxson.tws_player_2
 
-import android.R.attr
 import android.app.Activity
 import android.content.Intent
 import android.net.Uri

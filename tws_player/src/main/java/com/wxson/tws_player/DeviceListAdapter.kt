@@ -1,4 +1,4 @@
-package com.wxson.tws_transmitter
+package com.wxson.tws_player
 
 import android.view.LayoutInflater
 import android.view.View

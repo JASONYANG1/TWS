@@ -1,4 +1,4 @@
-package com.wxson.tws_transmitter
+package com.wxson.tws_player_2
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -19,6 +19,6 @@ class ExampleInstrumentedTest {
     fun useAppContext() {
         // Context of the app under test.
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals("com.wxson.tws_transmitter", appContext.packageName)
+        assertEquals("com.wxson.tws_player", appContext.packageName)
     }
 }
