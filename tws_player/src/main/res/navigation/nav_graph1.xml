@@ -2,28 +2,28 @@
 <navigation xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/nav_graph"
-    app:startDestination="@id/FirstFragment">
+    android:id="@+id/nav_graph1"
+    app:startDestination="@id/FragmentOne">
 
     <fragment
-        android:id="@+id/FirstFragment"
+        android:id="@+id/FragmentOne"
         android:name="com.wxson.tws_player.FirstFragment"
         android:label="@string/first_fragment_label"
-        tools:layout="@layout/fragment_first">
+        tools:layout="@layout/fragment_one">
 
         <action
             android:id="@+id/action_FirstFragment_to_SecondFragment"
-            app:destination="@id/SecondFragment" />
+            app:destination="@id/FragmentTwo" />
     </fragment>
     <fragment
-        android:id="@+id/SecondFragment"
+        android:id="@+id/FragmentTwo"
         android:name="com.wxson.tws_player.SecondFragment"
         android:label="@string/second_fragment_label"
-        tools:layout="@layout/fragment_second">
+        tools:layout="@layout/fragment_two">
 
         <action
             android:id="@+id/action_SecondFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment" />
+            app:destination="@id/FragmentOne" />
         <action
             android:id="@+id/action_SecondFragment_to_BluetoothFragment"
             app:destination="@id/BluetoothFragment"/>
@@ -35,6 +35,6 @@
         tools:layout="@layout/fragment_bluetooth">
         <action
             android:id="@+id/action_BluetoothFragment_to_FirstFragment"
-            app:destination="@id/FirstFragment"/>
+            app:destination="@id/FragmentOne"/>
     </fragment>
 </navigation>
