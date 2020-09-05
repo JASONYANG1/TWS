@@ -32,7 +32,14 @@ class DeviceListAdapter : BaseAdapter() {
         }
         viewHolder.nameTextView?.text = listInAdapter[position].bluetoothDevice.name
         viewHolder.addressTextView?.text = listInAdapter[position].bluetoothDevice.address
-        viewHolder.statusTextView?.text = if (listInAdapter[position].isPaired) "已配对" else "-"
+//        viewHolder.statusTextView?.text = if (listInAdapter[position].status == Constants.BluetoothBonded) "已配对" else "-"
+        viewHolder.statusTextView?.text =
+        when (listInAdapter[position].status){
+            Constants.BluetoothBonded -> "已配对"
+            Constants.BluetoothNoBond -> "-"
+            Constants.BluetoothConnected -> "已连接"
+            else -> ""
+        }
         return view
     }
 

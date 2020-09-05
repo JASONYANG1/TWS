@@ -66,6 +66,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         listView?.adapter = deviceListAdapter
         //获取ViewModel
         viewModel = ViewModelProvider(this).get(BluetoothViewModel::class.java)
+        viewModel.context = this.context
         if (!viewModel.hasBluetoothAdapter()) {
             showMsg("不支持蓝牙 系统退出")
             activity?.finish()
