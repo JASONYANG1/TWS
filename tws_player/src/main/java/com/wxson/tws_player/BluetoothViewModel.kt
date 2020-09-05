@@ -23,6 +23,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     private lateinit var bluetoothA2dp : BluetoothA2dp
     private val bluetoothReceiver : BroadcastReceiver
 
+    var context : Context? = null
+
     //region for LiveData
     private var deviceListLiveData = MutableLiveData<MutableList<BluetoothDeviceWithStatus>>()
     fun getDeviceList() : LiveData<MutableList<BluetoothDeviceWithStatus>> {
@@ -43,15 +45,17 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     //连接蓝牙设备（通过监听蓝牙协议的服务，在连接服务的时候使用BluetoothA2dp协议）
     private val profileServiceListener = object : BluetoothProfile.ServiceListener {
         override fun onServiceDisconnected(profile: Int) {
-            // nothing to do
+            Log.i(tag, "onServiceDisconnected")
         }
 
         override fun onServiceConnected(profile: Int, proxy: BluetoothProfile?) {
+            Log.i(tag, "onServiceConnected")
             try {
                 if (profile == BluetoothProfile.HEADSET) {
-                    // nothing to do
+                    Log.i(tag, "BluetoothProfile.HEADSET")
                 } else if (profile == BluetoothProfile.A2DP) {
                     //使用A2DP的协议连接蓝牙设备
+                    Log.i(tag, "BluetoothProfile.A2DP")
                     bluetoothA2dp = proxy as BluetoothA2dp
                     if (bluetoothA2dp.getConnectionState(currentBluetoothDevice) != BluetoothProfile.STATE_CONNECTED) {
                         bluetoothA2dp.javaClass
@@ -76,6 +80,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         filter.addAction(BluetoothDevice.ACTION_FOUND)
         filter.addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
         filter.addAction(BluetoothDevice.ACTION_BOND_STATE_CHANGED)
+        filter.addAction(BluetoothDevice.ACTION_ACL_CONNECTED)
+        filter.addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
         bluetoothReceiver = BluetoothReceiver()
         app.registerReceiver(bluetoothReceiver, filter)
         getBondedDevicesFromBluetoothAdapter()
@@ -141,20 +147,20 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             when (currentBluetoothDevice.bondState) {
                 BluetoothDevice.BOND_BONDED -> {
                     msg= "是否与设备" + currentBluetoothDevice.name + "连接？"
-                    showDialog(msg, DialogInterface.OnClickListener{ _, _ ->
+                    showDialog(msg) { _, _ ->
                         //使用A2DP协议连接设备
                         connectA2dpDevice()
-                    })
+                    }
                 }
 //                BluetoothDevice.BOND_BONDING -> {
 //                    msgLiveData.postValue("设备正在绑定中")
 //                }
                 BluetoothDevice.BOND_NONE -> {
                     msg="是否与设备" + currentBluetoothDevice.name + "配对并连接？"
-                    showDialog(msg, DialogInterface.OnClickListener{ _, _ ->
+                    showDialog(msg) { _, _ ->
                         // 如果未配对，实施配对绑定
                         BluetoothUtils.makePair(currentBluetoothDevice)
-                    })
+                    }
                 }
             }
             showProgressLiveData.postValue(true)
@@ -168,10 +174,9 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         currentBluetoothDevice = deviceWithStatusList[position].bluetoothDevice
         when (currentBluetoothDevice.bondState) {
             BluetoothDevice.BOND_BONDED -> {
-                showDialog("是否取消" + currentBluetoothDevice.name.toString() + "配对？",
-                    DialogInterface.OnClickListener { _, _ ->
-                        BluetoothUtils.breakPair(currentBluetoothDevice)
-                    })
+                showDialog("是否取消" + currentBluetoothDevice.name.toString() + "配对？" ) {
+                        _, _ -> BluetoothUtils.breakPair(currentBluetoothDevice)
+                }
             }
         }
         return false
@@ -184,7 +189,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         if (deviceSet != null) {
             for (device in deviceSet) {
                 val bluetoothDevice = BluetoothDeviceWithStatus(device)
-                bluetoothDevice.isPaired = true
+                bluetoothDevice.status = Constants.BluetoothBonded
                 deviceWithStatusList.add(bluetoothDevice)
             }
             deviceListLiveData.postValue(deviceWithStatusList)
@@ -201,7 +206,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun showDialog(msg: String?, listener: DialogInterface.OnClickListener?) {
-        val alertDialog : AlertDialog = AlertDialog.Builder(app).create()
+        val alertDialog : AlertDialog = AlertDialog.Builder(context).create()
         alertDialog.setMessage(msg)
         alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "取消"
         ) { _, _ -> alertDialog.dismiss() }
@@ -224,8 +229,36 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         if (deviceWithStatusList.find { deviceInList: BluetoothDeviceWithStatus ->
                                 deviceInList.bluetoothDevice.address == device.address
                             } == null) {
-                            bluetoothDeviceWithStatus.isPaired = false
+                            bluetoothDeviceWithStatus.status = Constants.BluetoothNoBond
                             deviceWithStatusList.add(bluetoothDeviceWithStatus)
+                            deviceListLiveData.postValue(deviceWithStatusList)
+                        }
+                    }
+                }
+                BluetoothDevice.ACTION_ACL_CONNECTED -> {
+                    val device: BluetoothDevice? =
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    if (device != null && device.bondState == BluetoothDevice.BOND_BONDED) {
+                        val position = deviceWithStatusList.indexOfFirst {
+                                deviceInList: BluetoothDeviceWithStatus ->
+                            deviceInList.bluetoothDevice.address == device.address
+                        }
+                        if (position >= 0) {
+                            deviceWithStatusList[position].status = Constants.BluetoothConnected
+                            deviceListLiveData.postValue(deviceWithStatusList)
+                        }
+                    }
+                }
+                BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
+                    val device: BluetoothDevice? =
+                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
+                    if (device != null && device.bondState == BluetoothDevice.BOND_BONDED) {
+                        val position = deviceWithStatusList.indexOfFirst {
+                                deviceInList: BluetoothDeviceWithStatus ->
+                            deviceInList.bluetoothDevice.address == device.address
+                        }
+                        if (position >= 0) {
+                            deviceWithStatusList[position].status = Constants.BluetoothBonded
                             deviceListLiveData.postValue(deviceWithStatusList)
                         }
                     }
