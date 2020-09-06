@@ -62,7 +62,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                             .getMethod("connect", BluetoothDevice::class.java)
                             .invoke(bluetoothA2dp, currentBluetoothDevice)
                         msgLiveData.postValue("请播放音乐")
-                        getBondedDevicesFromBluetoothAdapter()
+//                        getBondedDevicesFromBluetoothAdapter()
                     }
                 }
             } catch (e: Exception) {
@@ -159,11 +159,11 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                     msg="是否与设备" + currentBluetoothDevice.name + "配对并连接？"
                     showDialog(msg) { _, _ ->
                         // 如果未配对，实施配对绑定
-                        BluetoothUtils.makePair(currentBluetoothDevice)
+                        currentBluetoothDevice.createBond()
                     }
+                    showProgressLiveData.postValue(true)
                 }
             }
-            showProgressLiveData.postValue(true)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -179,7 +179,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 }
             }
         }
-        return false
+        return true
     }
 
     //获取所有已经绑定的蓝牙设备
@@ -238,30 +238,12 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 BluetoothDevice.ACTION_ACL_CONNECTED -> {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    if (device != null && device.bondState == BluetoothDevice.BOND_BONDED) {
-                        val position = deviceWithStatusList.indexOfFirst {
-                                deviceInList: BluetoothDeviceWithStatus ->
-                            deviceInList.bluetoothDevice.address == device.address
-                        }
-                        if (position >= 0) {
-                            deviceWithStatusList[position].status = Constants.BluetoothConnected
-                            deviceListLiveData.postValue(deviceWithStatusList)
-                        }
-                    }
+                    setDeviceStatusInList(device, Constants.BluetoothConnected)
                 }
                 BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    if (device != null && device.bondState == BluetoothDevice.BOND_BONDED) {
-                        val position = deviceWithStatusList.indexOfFirst {
-                                deviceInList: BluetoothDeviceWithStatus ->
-                            deviceInList.bluetoothDevice.address == device.address
-                        }
-                        if (position >= 0) {
-                            deviceWithStatusList[position].status = Constants.BluetoothBonded
-                            deviceListLiveData.postValue(deviceWithStatusList)
-                        }
-                    }
+                    setDeviceStatusInList(device, Constants.BluetoothBonded)
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     //扫描结束
@@ -287,6 +269,19 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun setDeviceStatusInList(device : BluetoothDevice?, status : Int){
+        if (device != null) {
+            val position = deviceWithStatusList.indexOfFirst {
+                    deviceInList: BluetoothDeviceWithStatus ->
+                deviceInList.bluetoothDevice.address == device.address
+            }
+            if (position >= 0) {
+                deviceWithStatusList[position].status = status
+                deviceListLiveData.postValue(deviceWithStatusList)
             }
         }
     }
