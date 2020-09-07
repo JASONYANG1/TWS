@@ -31,7 +31,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
     private var btnStop : Button? = null
     private var listView : ListView? = null
     private val deviceListAdapter = DeviceListAdapter()
-    private lateinit var snackbar : Snackbar
+    private lateinit var snack : Snackbar
 
 //    companion object {
 //        fun newInstance() = BluetoothFragment()
@@ -86,7 +86,7 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         viewModel.getDeviceList().observe(viewLifecycleOwner, bluetoothDeviceListObserver)
         val msgObserver: Observer<String> = Observer { localMsg -> showMsg(localMsg.toString()) }
         viewModel.getMsg().observe(viewLifecycleOwner, msgObserver)
-        val showProgressObserver : Observer<Boolean> = Observer { isShowProgress -> showProgress(isShowProgress) }
+        val showProgressObserver : Observer<String?> = Observer { progressMsg -> showProgress(progressMsg) }
         viewModel.getShowProgress().observe(viewLifecycleOwner, showProgressObserver)
 
         //申请权限
@@ -173,12 +173,12 @@ class BluetoothFragment : Fragment(), EasyPermissions.PermissionCallbacks, View.
         Toast.makeText(this.context, msg, Toast.LENGTH_SHORT).show()
     }
 
-    private fun showProgress(isShow : Boolean) {
-        if (isShow) {
-            snackbar = Snackbar.make(this.requireView(), "正在搜索...", Snackbar.LENGTH_INDEFINITE)
-            snackbar.show()
+    private fun showProgress(msg : String?) {
+        if (msg != null) {
+            snack = Snackbar.make(this.requireView(), msg, Snackbar.LENGTH_INDEFINITE)
+            snack.show()
         } else {
-            snackbar.dismiss()
+            snack.dismiss()
         }
     }
 }

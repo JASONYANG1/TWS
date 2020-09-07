@@ -36,8 +36,8 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         return msgLiveData
     }
 
-    private var showProgressLiveData = MutableLiveData<Boolean>()
-    fun getShowProgress() : LiveData<Boolean> {
+    private var showProgressLiveData = MutableLiveData<String?>()
+    fun getShowProgress() : LiveData<String?> {
         return showProgressLiveData
     }
     //endregion
@@ -135,7 +135,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
             bluetoothAdapter.cancelDiscovery()
         }
         bluetoothAdapter?.startDiscovery()
-        showProgressLiveData.postValue(true)
+        showProgressLiveData.postValue("搜索中....")
 
     }
 
@@ -151,17 +151,15 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         //使用A2DP协议连接设备
                         connectA2dpDevice()
                     }
+                    showProgressLiveData.postValue("连接中....")
                 }
-//                BluetoothDevice.BOND_BONDING -> {
-//                    msgLiveData.postValue("设备正在绑定中")
-//                }
                 BluetoothDevice.BOND_NONE -> {
                     msg="是否与设备" + currentBluetoothDevice.name + "配对并连接？"
                     showDialog(msg) { _, _ ->
                         // 如果未配对，实施配对绑定
                         currentBluetoothDevice.createBond()
                     }
-                    showProgressLiveData.postValue(true)
+                    showProgressLiveData.postValue("配对连接中....")
                 }
             }
         } catch (e: Exception) {
@@ -187,10 +185,16 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
         if (deviceWithStatusList.isNotEmpty()) deviceWithStatusList.clear()
         val deviceSet = bluetoothAdapter?.bondedDevices
         if (deviceSet != null) {
+            val isConnectedMethod = BluetoothDevice::class.java.getMethod("isConnected")
+            isConnectedMethod.isAccessible = true
             for (device in deviceSet) {
-                val bluetoothDevice = BluetoothDeviceWithStatus(device)
-                bluetoothDevice.status = Constants.BluetoothBonded
-                deviceWithStatusList.add(bluetoothDevice)
+                val bluetoothDeviceWithStatus = BluetoothDeviceWithStatus(device)
+                if (isConnectedMethod.invoke(device) as Boolean){
+                    bluetoothDeviceWithStatus.status = Constants.BluetoothConnected
+                } else {
+                    bluetoothDeviceWithStatus.status = Constants.BluetoothBonded
+                }
+                deviceWithStatusList.add(bluetoothDeviceWithStatus)
             }
             deviceListLiveData.postValue(deviceWithStatusList)
         }
@@ -247,7 +251,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
                     //扫描结束
-                    showProgressLiveData.postValue(false)
+                    showProgressLiveData.postValue(null)
                     Log.i(tag, "搜索完成")
                 }
                 BluetoothDevice.ACTION_BOND_STATE_CHANGED -> {
@@ -264,7 +268,7 @@ class BluetoothViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                         BluetoothDevice.BOND_BONDED -> {
                             Log.i(tag, "匹配成功")
-                            showProgressLiveData.postValue(false)
+                            showProgressLiveData.postValue(null)
                             connectA2dpDevice()
                         }
                     }
