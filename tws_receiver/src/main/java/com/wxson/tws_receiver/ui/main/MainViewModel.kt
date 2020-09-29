@@ -1,6 +1,7 @@
 package com.wxson.tws_receiver.ui.main
 
 import android.annotation.SuppressLint
+import android.app.Application
 import android.bluetooth.BluetoothA2dp
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
@@ -8,14 +9,18 @@ import android.bluetooth.BluetoothProfile
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import androidx.lifecycle.ViewModel
 import android.content.IntentFilter
 import android.util.Log
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import java.util.*
+import kotlin.concurrent.schedule
 
-class MainViewModel : ViewModel() {
+
+class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val runningTag = this.javaClass.simpleName
+    private val app : Application
     private val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
     private var deviceItemList = mutableListOf<BluetoothDeviceItem>()
     private var a2dpProfile : BluetoothProfile? = null
@@ -45,28 +50,31 @@ class MainViewModel : ViewModel() {
 //                    val device: BluetoothDevice =
 //                        intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
                     connectDevice = intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    if (connectDevice != null) {
-                        val deviceName = connectDevice!!.name
-                        val deviceHardwareAddress = connectDevice!!.address // MAC address
-                        val deviceItem = BluetoothDeviceItem(connectDevice!!, Constants.BluetoothUnconnected)
-                        deviceItemList.add(deviceItem)
-                        deviceListLiveData.postValue(deviceItemList)
-                        Log.d(
-                            runningTag,
-                            "搜索到的蓝牙设备信息：deviceName：$deviceName，deviceHardwareAddress：$deviceHardwareAddress"
-                        )
-                    }
+                    if (connectDevice != null)
+                    // 重复查询
+                        if (deviceItemList.find { itemInList: BluetoothDeviceItem -> itemInList.device.address == connectDevice!!.address } == null) {
+                            val deviceName = connectDevice!!.name
+                            val deviceHardwareAddress = connectDevice!!.address // MAC address
+                            val deviceItem =
+                                BluetoothDeviceItem(connectDevice!!, Constants.BluetoothUnconnected)
+                            deviceItemList.add(deviceItem)
+                            deviceListLiveData.postValue(deviceItemList)
+                            Log.i(
+                                runningTag,
+                                "搜索到的蓝牙设备信息：deviceName：$deviceName，deviceHardwareAddress：$deviceHardwareAddress"
+                            )
+                        }
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_FINISHED -> {
-                    Log.d(runningTag, "搜索完成，当前周围有设备：${deviceItemList.size}台")
+                    Log.i(runningTag, "搜索完成，当前周围有设备：${deviceItemList.size}台")
                 }
                 BluetoothAdapter.ACTION_DISCOVERY_STARTED -> {
-                    Log.d(runningTag, "正在扫描..........")
+                    Log.i(runningTag, "正在扫描..........")
                 }
                 "android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED" -> {
                     val device: BluetoothDevice? =
                         intent.getParcelableExtra(BluetoothDevice.EXTRA_DEVICE)
-                    Log.d(runningTag, "当前的a2dp的链接状态：${a2dpProfile?.getConnectionState(device)}")
+                    Log.i(runningTag, "当前的a2dp的链接状态：${a2dpProfile?.getConnectionState(device)}")
                 }
             }
         }
@@ -85,19 +93,20 @@ class MainViewModel : ViewModel() {
 
     init {
         Log.i(runningTag, "init")
+        app = application
         deviceItemList.clear()
-        val filter = IntentFilter()
-        filter.apply {
-            addAction("android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED")
-            //找到设备的广播
-            addAction(BluetoothDevice.ACTION_FOUND)
-            addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
-            // 搜索完成的广播
-            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
-            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
-            priority = IntentFilter.SYSTEM_HIGH_PRIORITY
-        }
-        context?.registerReceiver(receiver, filter)
+//        val filter = IntentFilter()
+//        filter.apply {
+//            addAction("android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED")
+//            //找到设备的广播
+//            addAction(BluetoothDevice.ACTION_FOUND)
+//            addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
+//            // 搜索完成的广播
+//            addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+//            addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+//            priority = IntentFilter.SYSTEM_HIGH_PRIORITY
+//        }
+//        context?.registerReceiver(receiver, filter)
     }
 
     override fun onCleared() {
@@ -116,6 +125,7 @@ class MainViewModel : ViewModel() {
      * 初始化蓝牙
      */
     fun initBlueTooth() {
+        Log.i(runningTag, "initBlueTooth")
         if (bluetoothAdapter == null) {
             msgLiveData.postValue("设备不支持蓝牙")
         } else {
@@ -124,7 +134,20 @@ class MainViewModel : ViewModel() {
                 //如果没有开启蓝牙 的话 就强行启动....
                 bluetoothAdapter.enable()
             }
-            Log.d(runningTag, "蓝牙已启动")
+            Log.i(runningTag, "蓝牙已启动")
+
+            val filter = IntentFilter()
+            filter.apply {
+                addAction("android.bluetooth.a2dp-sink.profile.action.CONNECTION_STATE_CHANGED")
+                //找到设备的广播
+                addAction(BluetoothDevice.ACTION_FOUND)
+                addAction(BluetoothAdapter.ACTION_DISCOVERY_STARTED)
+                // 搜索完成的广播
+                addAction(BluetoothAdapter.ACTION_DISCOVERY_FINISHED)
+                addAction(BluetoothAdapter.ACTION_STATE_CHANGED)
+                priority = IntentFilter.SYSTEM_HIGH_PRIORITY
+            }
+            context?.registerReceiver(receiver, filter)
 
             searchDevices()
         }
@@ -139,23 +162,36 @@ class MainViewModel : ViewModel() {
         } else {
             //开始搜索
             val findThreadSuccess = bluetoothAdapter.startDiscovery()
-            Log.d(runningTag, "搜索设备的进程是否已成功启动:$findThreadSuccess")
+            Log.i(runningTag, "搜索设备的进程是否已成功启动:$findThreadSuccess")
         }
     }
 
-    fun createBond(position : Int){
+    fun createBond(position: Int){
+        Log.i(runningTag, "createBond")
         //连接前先关闭搜索
         bluetoothAdapter?.cancelDiscovery()
+        //关闭bluetooth source服务
+        stopA2dpService()
+        //开启bluetooth sink服务
+        startA2dpSinkService()
+
         connectDevice = deviceItemList[position].device
         //Perform a service discovery on the remote device to get the UUIDs supported.
         connectDevice!!.fetchUuidsWithSdp()
         connectDevice!!.createBond()
-        Log.d(runningTag, "当前点击的设备名称：${connectDevice!!.name}，MAC:${connectDevice!!.address}")
-        bluetoothAdapter?.getProfileProxy(context, profileServiceListener, 11)   //A2DP_SINK
+        Log.i(runningTag, "当前点击的设备名称：${connectDevice!!.name}，MAC:${connectDevice!!.address}")
+
+        Timer().schedule(3000){
+            if (bluetoothAdapter!!.getProfileProxy(app, profileServiceListener, 11)) {
+                //A2DP_SINK
+                Log.i(runningTag, "getProfileProxy ok")
+            }
+        }
     }
 
     //解除蓝牙设备绑定
     fun releaseBond(position: Int) {
+        Log.i(runningTag, "releaseBond")
         connectDevice = deviceItemList[position].device
         when (connectDevice!!.bondState) {
             BluetoothDevice.BOND_BONDED -> {
@@ -171,7 +207,7 @@ class MainViewModel : ViewModel() {
         override fun onServiceDisconnected(profile: Int) {
             if (profile == BluetoothProfile.A2DP) {
                 a2dpProfile = null
-                Log.d(runningTag, "ok==========连接失败")
+                Log.i(runningTag, "ok==========连接失败")
             }
         }
 
@@ -189,12 +225,12 @@ class MainViewModel : ViewModel() {
     @SuppressLint("PrivateApi")
     private fun connectA2dp(device: BluetoothDevice) {
         try {
-            val clas =
+            val a2dpSinkClass =
                 ClassLoader.getSystemClassLoader().loadClass("android.bluetooth.BluetoothA2dpSink")
-            val connmethod = clas.getMethod("connect", BluetoothDevice::class.java)
+            val connectMethod = a2dpSinkClass.getMethod("connect", BluetoothDevice::class.java)
 
-            connmethod.invoke(a2dpProfile, device)
-            Log.d(runningTag, "connectA2dp: clas:${clas.name}")
+            connectMethod.invoke(a2dpProfile, device)
+            Log.i(runningTag, "connectA2dp: a2dpSinkClass:${a2dpSinkClass.name}")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -210,7 +246,7 @@ class MainViewModel : ViewModel() {
 //        pairedDevices?.forEach { device ->
 //            val deviceName = device.name
 //            val deviceHardwareAddress = device.address // MAC address
-//            Log.d(runningTag, "已配对设备的name:$deviceName，MAC address :$deviceHardwareAddress")
+//            Log.i(runningTag, "已配对设备的name:$deviceName，MAC address :$deviceHardwareAddress")
 //        }
 //    }
 
@@ -237,5 +273,25 @@ class MainViewModel : ViewModel() {
         } catch (e: Exception) {
             Log.e(runningTag, e.message ?: "")
         }
+    }
+
+    private fun stopA2dpService() {
+        val intent = Intent()
+        intent.action = "com.android.bluetooth/.a2dp.A2dpService"
+        intent.setPackage("com.android.bluetooth")
+        intent.putExtra("action", "com.android.bluetooth.btservice.action.STATE_CHANGED")
+        intent.putExtra(BluetoothAdapter.EXTRA_STATE, 10)
+        app.startService(intent)
+        Log.i(runningTag, "stopA2dpService")
+    }
+
+    private fun startA2dpSinkService () {
+        val intent = Intent()
+        intent.action = "com.android.bluetooth/.a2dpsink.A2dpSinkService"
+        intent.setPackage("com.android.bluetooth")
+        intent.putExtra("action", "com.android.bluetooth.btservice.action.STATE_CHANGED")
+        intent.putExtra(BluetoothAdapter.EXTRA_STATE, 12)
+        app.startService(intent)
+        Log.i(runningTag, "startA2dpSinkService")
     }
 }

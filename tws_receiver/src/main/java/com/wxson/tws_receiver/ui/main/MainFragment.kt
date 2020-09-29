@@ -38,8 +38,6 @@ class MainFragment() : Fragment(), EasyPermissions.PermissionCallbacks {
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-        //申请权限
-        requestLocationPermission()
 
         viewModel = ViewModelProvider(this).get(MainViewModel::class.java)
         viewModel.context = this.context
@@ -47,6 +45,9 @@ class MainFragment() : Fragment(), EasyPermissions.PermissionCallbacks {
             showMsg("不支持蓝牙 系统退出")
             activity?.finish()
         }
+
+        //申请权限
+        requestLocationPermission()
 
         listView = activity?.findViewById(R.id.list_view)
         listView?.adapter = deviceListAdapter
@@ -67,7 +68,6 @@ class MainFragment() : Fragment(), EasyPermissions.PermissionCallbacks {
             Observer { deviceList -> deviceListAdapter.refresh(deviceList) }
         viewModel.getDeviceList().observe(viewLifecycleOwner, bluetoothDeviceListObserver)
 
-        // TODO: Use the ViewModel
     }
 
     override fun onPermissionsGranted(requestCode: Int, perms: MutableList<String>) {
